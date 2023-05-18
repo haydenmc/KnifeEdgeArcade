@@ -2,3 +2,5 @@
 .vscode/
 build/
 external/x64
+subprojects/*
+!subprojects/*.wrap

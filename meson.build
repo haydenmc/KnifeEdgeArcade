@@ -10,6 +10,19 @@ else
   add_project_arguments('-std=c++2a', language: 'cpp')
 endif
 
+# Subprojects
+fmt_wrap = subproject('fmt',
+  default_options: [
+    'default_library=static'
+  ])
+spdlog_wrap = subproject('spdlog',
+  default_options: [
+    'tests=false',
+    'default_library=static',
+    'compile_library=true',
+    'external_fmt=enabled',
+  ])
+
 projectDir  = meson.current_source_dir()
 
 # Find mupen64plus-core
@@ -20,11 +33,14 @@ m64core_lib = cpp_compiler.find_library('mupen64plus', dirs: m64core_path, requi
 
 exe = executable('KnifeEdgeArcade',
   dependencies: [
+    spdlog_wrap.get_variable('spdlog_dep'),
     m64core_lib
   ],
   include_directories: [
-    'external/mupen64plus-core/src/api'
+    'src',
+    'external/mupen64plus-core/src/api',
   ],
+  cpp_pch: 'src/pch.h',
   sources: [
     'src/Entrypoint.cpp',
     'src/m64p/Mupen64PlusCore.cpp',

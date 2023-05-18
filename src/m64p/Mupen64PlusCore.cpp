@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "Mupen64PlusCore.h"
 
 #include "Mupen64PlusUtil.h"
@@ -76,7 +77,22 @@ namespace m64p
 
     void Mupen64PlusCore::DebugCallback(int level, const char* message)
     {
-        // TODO
+        if (level == M64MSG_ERROR)
+        {
+            spdlog::error("mupen64plus-core: {}", message);
+        }
+        else if (level == M64MSG_WARNING)
+        {
+            spdlog::warn("mupen64plus-core: {}", message);
+        }
+        else if (level == M64MSG_INFO || level == M64MSG_STATUS)
+        {
+            spdlog::info("mupen64plus-core: {}", message);
+        }
+        else
+        {
+            spdlog::debug("mupen64plus-core: {}", message);
+        }
     }
 
     void Mupen64PlusCore::StaticStateCallback(
