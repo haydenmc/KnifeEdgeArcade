@@ -1,12 +1,10 @@
 #include <iostream>
-
-extern "C"
-{
-    extern int CoreStartup(int, const char *, const char *, void *, void*, void *, void*);
-}
+#include "m64p/Mupen64PlusCore.h"
 
 int main()
 {
-    auto test{ CoreStartup(0x020001, "C:\\", "C:\\", nullptr, nullptr, nullptr, nullptr ) };
-    std::cout << test << std::endl;
+    m64p::Mupen64PlusCore m64{{
+        "C:\\", // Config path
+        "C:\\", // Data path
+    }};
 }
