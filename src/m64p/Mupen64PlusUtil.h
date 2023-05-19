@@ -1,5 +1,5 @@
 #pragma once
-#include <format>
+#include <fmt/format.h>
 #include <m64p_types.h>
 #include <stdexcept>
 
@@ -9,7 +9,7 @@ namespace m64p
     {
         if (error != M64ERR_SUCCESS)
         {
-            throw std::runtime_error(std::format(
+            throw std::runtime_error(fmt::format(
                 "Mupen64plus error {}",
                 static_cast<uint32_t>(error)));
         }
