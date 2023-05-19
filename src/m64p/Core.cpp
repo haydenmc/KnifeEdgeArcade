@@ -53,6 +53,10 @@ extern "C"
         m64p_dynlib_handle PluginLibHandle);
     extern m64p_error CoreDetachPlugin(m64p_plugin_type pluginType);
     extern m64p_error CoreDoCommand(m64p_command command, int paramInt, void* paramPtr);
+    extern m64p_error ConfigSetParameter(m64p_handle ConfigSectionHandle,
+        const char *ParamName, m64p_type ParamType, const void *ParamValue);
+    extern m64p_error ConfigOpenSection(const char *SectionName,
+        m64p_handle *ConfigSectionHandle);
 }
 
 namespace m64p
@@ -74,6 +78,15 @@ namespace m64p
             this,
             Core::StaticStateCallback
         ));
+
+        // HACK: Set resolution
+        m64p_handle videoConfigSection;
+        CheckError(ConfigOpenSection("Video-General", &videoConfigSection));
+        uint32_t width{ 1280 };
+        uint32_t height{ 720 };
+        CheckError(ConfigSetParameter(videoConfigSection, "ScreenWidth", M64TYPE_INT, &width));
+        CheckError(ConfigSetParameter(videoConfigSection, "ScreenHeight", M64TYPE_INT, &height));
+        // /HACK
 
         CheckError(CoreDoCommand(m64p_command::M64CMD_ROM_OPEN,
             m_romData.size(), const_cast<char*>(m_romData.data())));
