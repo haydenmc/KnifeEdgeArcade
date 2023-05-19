@@ -43,5 +43,6 @@ exe = executable('KnifeEdgeArcade',
   cpp_pch: 'src/pch.h',
   sources: [
     'src/Entrypoint.cpp',
-    'src/m64p/Mupen64PlusCore.cpp',
+    'src/m64p/Core.cpp',
+    'src/m64p/Plugin.cpp',
   ])
