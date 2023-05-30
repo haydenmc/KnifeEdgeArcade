@@ -1,4 +1,4 @@
-project('KnifeEdgeArcade', 'cpp',
+project('knife-edge-arcade', 'cpp',
   version : '0.1',
   default_options: [])
 
@@ -22,27 +22,30 @@ spdlog_wrap = subproject('spdlog',
     'compile_library=true',
     'external_fmt=enabled',
   ])
-
-projectDir  = meson.current_source_dir()
+tomlplusplus_wrap = subproject('tomlplusplus', default_options: ['default_library=static'])
 
 # Find mupen64plus-core
+projectDir  = meson.current_source_dir()
 m64core_default_path = join_paths(projectDir, 'external/x64/New_Dynarec_Debug')
 m64core_path = get_variable('MUPEN64PLUS_CORE_PATH', m64core_default_path)
 cpp_compiler = meson.get_compiler('cpp')
 m64core_lib = cpp_compiler.find_library('mupen64plus', dirs: m64core_path, required: true)
 
-exe = executable('KnifeEdgeArcade',
+exe = executable('knife-edge-arcade',
   dependencies: [
+    dependency('tomlplusplus'),
     spdlog_wrap.get_variable('spdlog_dep'),
     m64core_lib
   ],
   include_directories: [
-    'src',
+    'src/knife-edge-arcade',
     'external/mupen64plus-core/src/api',
   ],
-  cpp_pch: 'src/pch.h',
+  cpp_pch: 'src/knife-edge-arcade/pch.h',
   sources: [
-    'src/Entrypoint.cpp',
-    'src/m64p/Core.cpp',
-    'src/m64p/Plugin.cpp',
+    'src/knife-edge-arcade/Configuration.cpp',
+    'src/knife-edge-arcade/Entrypoint.cpp',
+    'src/knife-edge-arcade/KnifeEdge.cpp',
+    'src/knife-edge-arcade/m64p/Core.cpp',
+    'src/knife-edge-arcade/m64p/Plugin.cpp',
   ])

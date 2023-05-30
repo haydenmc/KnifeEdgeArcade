@@ -10,13 +10,14 @@ namespace m64p
 {
     struct CoreConfig
     {
-        std::string ConfigPath;
-        std::string DataPath;
+        bool DisplayFullscreen;
+        std::pair<uint32_t, uint32_t> DisplayResolution;
+        std::filesystem::path RomFilePath;
     };
 
     struct Core
     {
-        Core(const CoreConfig& configuration, const std::filesystem::path& romFilePath);
+        Core(const CoreConfig& configuration);
         ~Core();
 
         void AttachVideoPlugin(std::unique_ptr<Plugin>&& videoPlugin);
@@ -26,9 +27,7 @@ namespace m64p
         void Execute();
 
     private:
-        const std::string m_configPath;
-        const std::string m_dataPath;
-        const std::string m_romData;
+        const std::vector<std::byte> m_romData;
         std::unique_ptr<Plugin> m_videoPlugin;
         std::unique_ptr<Plugin> m_audioPlugin;
         std::unique_ptr<Plugin> m_inputPlugin;

@@ -4,18 +4,6 @@
 #include "Core.h"
 #include "Mupen64PlusUtil.h"
 
-namespace
-{
-    constexpr uint32_t CORE_API_VERSION{ 0x020001 };
-
-    inline std::string ReadFile(const std::filesystem::path& filePath)
-    {
-        std::ifstream file{ filePath, std::ifstream::in | std::ifstream::binary };
-        return std::string{ (std::istreambuf_iterator<char>(file)),
-            std::istreambuf_iterator<char>() };
-    }
-}
-
 extern "C"
 {
     // Mupen64Plus Core front-end api
@@ -59,37 +47,39 @@ extern "C"
         m64p_handle *ConfigSectionHandle);
 }
 
+namespace
+{
+    constexpr uint32_t CORE_API_VERSION{ 0x020001 };
+
+    inline std::vector<std::byte> ReadFile(const std::filesystem::path& filePath)
+    {
+        std::basic_ifstream<std::byte> file{ filePath, std::ios::in | std::ios::binary };
+        return std::vector<std::byte>{ (std::istreambuf_iterator<std::byte>(file)), {} };
+    }
+
+    inline void ApplyConfiguration(const m64p::CoreConfig& config)
+    {
+        m64p_handle videoConfigSection;
+        m64p::CheckError(ConfigOpenSection("Video-General", &videoConfigSection));
+        m64p::CheckError(ConfigSetParameter(videoConfigSection, "ScreenWidth", M64TYPE_INT,
+            &(config.DisplayResolution.first)));
+        m64p::CheckError(ConfigSetParameter(videoConfigSection, "ScreenHeight", M64TYPE_INT,
+            &(config.DisplayResolution.second)));
+        uint32_t fullscreen{ config.DisplayFullscreen ? 1u : 0u };
+        m64p::CheckError(ConfigSetParameter(videoConfigSection, "Fullscreen", M64TYPE_BOOL,
+            &fullscreen));
+    }
+}
+
 namespace m64p
 {
-    Core::Core(
-        const CoreConfig& configuration,
-        const std::filesystem::path& romFilePath
-    ) : 
-        m_configPath{ configuration.ConfigPath },
-        m_dataPath{ configuration.DataPath },
-        m_romData{ ReadFile(romFilePath) }
+    Core::Core(const CoreConfig& configuration) : m_romData{ ReadFile(configuration.RomFilePath) }
     {
-        CheckError(CoreStartup(
-            CORE_API_VERSION,
-            m_configPath.c_str(),
-            m_dataPath.c_str(),
-            this,
-            Core::StaticDebugCallback,
-            this,
-            Core::StaticStateCallback
-        ));
-
-        // HACK: Set resolution
-        m64p_handle videoConfigSection;
-        CheckError(ConfigOpenSection("Video-General", &videoConfigSection));
-        uint32_t width{ 1280 };
-        uint32_t height{ 720 };
-        CheckError(ConfigSetParameter(videoConfigSection, "ScreenWidth", M64TYPE_INT, &width));
-        CheckError(ConfigSetParameter(videoConfigSection, "ScreenHeight", M64TYPE_INT, &height));
-        // /HACK
-
+        CheckError(CoreStartup(CORE_API_VERSION, nullptr, nullptr, this, Core::StaticDebugCallback,
+            this, Core::StaticStateCallback));
+        ApplyConfiguration(configuration);
         CheckError(CoreDoCommand(m64p_command::M64CMD_ROM_OPEN,
-            m_romData.size(), const_cast<char*>(m_romData.data())));
+            m_romData.size(), const_cast<std::byte*>(m_romData.data())));
     }
 
     Core::~Core()
