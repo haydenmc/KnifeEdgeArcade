@@ -5,7 +5,7 @@
 
 namespace m64p
 {
-    static inline void CheckError(const m64p_error& error)
+    static inline void ThrowIfError(const m64p_error& error)
     {
         if (error != M64ERR_SUCCESS)
         {

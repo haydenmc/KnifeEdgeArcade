@@ -1,4 +1,5 @@
 #include <pch.h>
+#include <atomic>
 #include <fstream>
 #include <m64p_types.h>
 #include "Core.h"
@@ -49,6 +50,7 @@ extern "C"
 
 namespace
 {
+    std::atomic<m64p::Core*> g_coreInstance{ nullptr };
     constexpr uint32_t CORE_API_VERSION{ 0x020001 };
 
     inline std::vector<std::byte> ReadFile(const std::filesystem::path& filePath)
@@ -60,13 +62,13 @@ namespace
     inline void ApplyConfiguration(const m64p::CoreConfig& config)
     {
         m64p_handle videoConfigSection;
-        m64p::CheckError(ConfigOpenSection("Video-General", &videoConfigSection));
-        m64p::CheckError(ConfigSetParameter(videoConfigSection, "ScreenWidth", M64TYPE_INT,
+        m64p::ThrowIfError(ConfigOpenSection("Video-General", &videoConfigSection));
+        m64p::ThrowIfError(ConfigSetParameter(videoConfigSection, "ScreenWidth", M64TYPE_INT,
             &(config.DisplayResolution.first)));
-        m64p::CheckError(ConfigSetParameter(videoConfigSection, "ScreenHeight", M64TYPE_INT,
+        m64p::ThrowIfError(ConfigSetParameter(videoConfigSection, "ScreenHeight", M64TYPE_INT,
             &(config.DisplayResolution.second)));
         uint32_t fullscreen{ config.DisplayFullscreen ? 1u : 0u };
-        m64p::CheckError(ConfigSetParameter(videoConfigSection, "Fullscreen", M64TYPE_BOOL,
+        m64p::ThrowIfError(ConfigSetParameter(videoConfigSection, "Fullscreen", M64TYPE_BOOL,
             &fullscreen));
     }
 }
@@ -75,23 +77,35 @@ namespace m64p
 {
     Core::Core(const CoreConfig& configuration) : m_romData{ ReadFile(configuration.RomFilePath) }
     {
-        CheckError(CoreStartup(CORE_API_VERSION, nullptr, nullptr, this, Core::StaticDebugCallback,
+        if (g_coreInstance.exchange(this) != nullptr)
+        {
+            throw std::runtime_error("Only 1 instance of Core can be running.");
+        }
+        ThrowIfError(CoreStartup(CORE_API_VERSION, nullptr, nullptr, this, Core::StaticDebugCallback,
             this, Core::StaticStateCallback));
         ApplyConfiguration(configuration);
-        CheckError(CoreDoCommand(m64p_command::M64CMD_ROM_OPEN,
+        ThrowIfError(CoreDoCommand(m64p_command::M64CMD_ROM_OPEN,
             m_romData.size(), const_cast<std::byte*>(m_romData.data())));
     }
 
     Core::~Core()
     {
-        CheckError(CoreShutdown());
+        auto shutdownResult{ CoreShutdown() };
+        if (shutdownResult != M64ERR_SUCCESS)
+        {
+            spdlog::error("Core: Error {} returned from CoreShutdown.");
+        }
+        if (g_coreInstance.exchange(nullptr) != this)
+        {
+            spdlog::error("Core: Unexpected value held in core singleton pointer.");
+        }
     }
 
     void Core::AttachVideoPlugin(std::unique_ptr<Plugin>&& videoPlugin)
     {
         spdlog::info("Core: Attaching video plugin...");
         m_videoPlugin = std::move(videoPlugin);
-        CheckError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_GFX,
+        ThrowIfError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_GFX,
             m_videoPlugin->GetPluginLibrary()));
     }
 
@@ -99,7 +113,7 @@ namespace m64p
     {
         spdlog::info("Core: Attaching audio plugin...");
         m_audioPlugin = std::move(audioPlugin);
-        CheckError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_AUDIO,
+        ThrowIfError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_AUDIO,
             m_audioPlugin->GetPluginLibrary()));
     }
 
@@ -107,7 +121,7 @@ namespace m64p
     {
         spdlog::info("Core: Attaching input plugin...");
         m_inputPlugin = std::move(inputPlugin);
-        CheckError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_INPUT,
+        ThrowIfError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_INPUT,
             m_inputPlugin->GetPluginLibrary()));
     }
 
@@ -115,14 +129,14 @@ namespace m64p
     {
         spdlog::info("Core: Attaching RSP plugin...");
         m_rspPlugin = std::move(rspPlugin);
-        CheckError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_RSP,
+        ThrowIfError(CoreAttachPlugin(m64p_plugin_type::M64PLUGIN_RSP,
             m_rspPlugin->GetPluginLibrary()));
     }
 
     void Core::Execute()
     {
         spdlog::info("Core: Executing emulation...");
-        CheckError(CoreDoCommand(m64p_command::M64CMD_EXECUTE, 0, nullptr));
+        ThrowIfError(CoreDoCommand(m64p_command::M64CMD_EXECUTE, 0, nullptr));
     }
 
     void Core::StaticDebugCallback(

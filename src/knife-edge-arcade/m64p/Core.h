@@ -37,5 +37,7 @@ namespace m64p
         void DebugCallback(int level, const char* message);
         static void StaticStateCallback(void* context, m64p_core_param paramType, int newValue);
         void StateCallback(m64p_core_param paramType, int newValue);
+        static void StaticFrameCallback();
+        void FrameCallback();
     };
 }

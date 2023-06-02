@@ -92,7 +92,7 @@ namespace m64p
         int32_t apiVersion;
         const char* pluginName;
         int32_t capabilities;
-        CheckError(m_getVersionFunction(
+        ThrowIfError(m_getVersionFunction(
             &type, &pluginVersion, &apiVersion, &pluginName, &capabilities));
         return PluginVersion
         {
@@ -138,6 +138,6 @@ namespace m64p
 
     void Plugin::Shutdown()
     {
-        CheckError(m_shutdownFunction());
+        ThrowIfError(m_shutdownFunction());
     }
 }
