@@ -3,6 +3,8 @@
 #include "Plugin.h"
 
 #include <filesystem>
+#include <functional>
+#include <optional>
 #include <m64p_types.h>
 #include <string>
 
@@ -24,6 +26,7 @@ namespace m64p
         void AttachAudioPlugin(std::unique_ptr<Plugin>&& audioPlugin);
         void AttachInputPlugin(std::unique_ptr<Plugin>&& inputPlugin);
         void AttachRspPlugin(std::unique_ptr<Plugin>&& rspPlugin);
+        void SetOnFrameCallback(std::function<void()> onFrameCallback);
         void Execute();
 
     private:
@@ -32,6 +35,7 @@ namespace m64p
         std::unique_ptr<Plugin> m_audioPlugin;
         std::unique_ptr<Plugin> m_inputPlugin;
         std::unique_ptr<Plugin> m_rspPlugin;
+        std::function<void()> m_onFrameCallback;
 
         static void StaticDebugCallback(void* context, int level, const char* message);
         void DebugCallback(int level, const char* message);

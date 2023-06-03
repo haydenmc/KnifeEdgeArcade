@@ -11,4 +11,5 @@ struct KnifeEdge
     void Run();
 private:
     const std::unique_ptr<m64p::Core> m_m64Core;
+    void OnFrame();
 };

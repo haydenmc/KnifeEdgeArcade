@@ -81,8 +81,8 @@ namespace m64p
         {
             throw std::runtime_error("Only 1 instance of Core can be running.");
         }
-        ThrowIfError(CoreStartup(CORE_API_VERSION, nullptr, nullptr, this, Core::StaticDebugCallback,
-            this, Core::StaticStateCallback));
+        ThrowIfError(CoreStartup(CORE_API_VERSION, nullptr, nullptr,
+            this, Core::StaticDebugCallback, this, Core::StaticStateCallback));
         ApplyConfiguration(configuration);
         ThrowIfError(CoreDoCommand(m64p_command::M64CMD_ROM_OPEN,
             m_romData.size(), const_cast<std::byte*>(m_romData.data())));
@@ -133,6 +133,21 @@ namespace m64p
             m_rspPlugin->GetPluginLibrary()));
     }
 
+    void Core::SetOnFrameCallback(std::function<void()> onFrameCallback)
+    {
+        m_onFrameCallback = onFrameCallback;
+        if (m_onFrameCallback)
+        {
+            CoreDoCommand(m64p_command::M64CMD_SET_FRAME_CALLBACK, 0, &Core::StaticFrameCallback);
+            spdlog::info("Core: OnFrameCallback set");
+        }
+        else
+        {
+            CoreDoCommand(m64p_command::M64CMD_SET_FRAME_CALLBACK, 0, nullptr);
+            spdlog::info("Core: OnFrameCallback cleared");
+        }
+    }
+
     void Core::Execute()
     {
         spdlog::info("Core: Executing emulation...");
@@ -178,5 +193,25 @@ namespace m64p
     void Core::StateCallback(m64p_core_param paramType, int newValue)
     {
         // TODO
+    }
+
+    void Core::StaticFrameCallback()
+    {
+        if (!g_coreInstance)
+        {
+            spdlog::error("Core: Frame callback invoked without a valid Core instance.");
+            return;
+        }
+        g_coreInstance.load()->FrameCallback();
+    }
+
+    void Core::FrameCallback()
+    {
+        if (!m_onFrameCallback)
+        {
+            spdlog::error("Core: FrameCallback was called, but no callback was registered.");
+            return;
+        }
+        m_onFrameCallback();
     }
 }
